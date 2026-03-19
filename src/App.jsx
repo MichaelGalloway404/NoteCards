@@ -1,142 +1,96 @@
-import { useState, useEffect } from "react";
-import "./App.css";
+import { useState, useEffect, useMemo } from "react";
 
-function App() {
+export default function App() {
   const [cards, setCards] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Load cards from API
+  // 1. Fetching logic
   useEffect(() => {
-    async function loadCards() {
-      try {
-        const res = await fetch("/api/getCards");
-        if (!res.ok) throw new Error("Failed to fetch cards");
-        const data = await res.json();
-        setCards(data.length > 0 ? data : [{ front: "", back: "", flipped: false }]);
-        setCurrentIndex(0);
-      } catch (err) {
-        console.error("Failed to load cards:", err);
-        setCards([{ front: "", back: "", flipped: false }]);
-        setCurrentIndex(0);
-      }
-    }
-    loadCards();
+    fetch("/api/getCards")
+      .then((res) => res.json())
+      .then((data) => {
+        setCards(data.length ? data : [{ front: "", back: "" }]);
+      })
+      .catch(() => setCards([{ front: "", back: "" }]))
+      .finally(() => setLoading(false));
   }, []);
 
-  const updateCard = (side, value) => {
-    if (!cards[currentIndex]) return;
-    const newCards = [...cards];
-    newCards[currentIndex][side] = value;
-    setCards(newCards);
+  // Current card helper
+  const currentCard = cards[currentIndex];
+
+  // 2. Optimized Handlers
+  const handleUpdate = (side, value) => {
+    const updated = [...cards];
+    updated[currentIndex] = { ...updated[currentIndex], [side]: value };
+    setCards(updated);
   };
 
-  const flipCard = () => {
-    if (!cards[currentIndex]) return;
-    const newCards = [...cards];
-    newCards[currentIndex].flipped = !newCards[currentIndex].flipped;
-    setCards(newCards);
-  };
-
-  // --- New card locally ---
-  const newCard = () => {
-    const newCards = [...cards, { front: "", back: "", flipped: false }];
-    setCards(newCards);
-    setCurrentIndex(newCards.length - 1);
-  };
-
-  // --- Save current card to DB (add or update) ---
-  const saveCard = async () => {
-    const card = cards[currentIndex];
-    if (!card) return;
-
+  const handleSave = async () => {
+    const { id, front, back } = currentCard;
+    const endpoint = id ? "/api/updateCard" : "/api/addCard";
+    
     try {
-      let savedCard;
-
-      if (card.id) {
-        // Existing card → update
-        const res = await fetch("/api/updateCard", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: card.id,
-            front: card.front,
-            back: card.back,
-          }),
-        });
-        savedCard = await res.json();
-      } else {
-        // New card → add
-        const res = await fetch("/api/addCard", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            front: card.front,
-            back: card.back,
-          }),
-        });
-        savedCard = await res.json();
-      }
-
-      // Update state with DB card
-      const newCards = [...cards];
-      newCards[currentIndex] = { ...savedCard, flipped: card.flipped };
-      setCards(newCards);
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, front, back }),
+      });
+      const saved = await res.json();
+      
+      const updated = [...cards];
+      updated[currentIndex] = saved; // Sync with DB ID
+      setCards(updated);
+      alert("Saved!");
     } catch (err) {
-      console.error("Failed to save card:", err);
+      console.error("Save failed", err);
     }
   };
 
-  const nextCard = () => {
-    if (currentIndex < cards.length - 1) setCurrentIndex(currentIndex + 1);
+  const changeCard = (dir) => {
+    setIsFlipped(false); // Reset flip when moving
+    setCurrentIndex((prev) => Math.max(0, Math.min(cards.length - 1, prev + dir)));
   };
 
-  const prevCard = () => {
-    if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
-  };
-
-  if (!cards[currentIndex]) return <div>Loading...</div>;
-
-  const card = cards[currentIndex];
+  if (loading) return <div className="loader">Loading...</div>;
 
   return (
     <div className="container">
-      <h1>Flashcards</h1>
-
       <div className="nav">
-        <button onClick={prevCard}>⬅</button>
-        <span>
-          Card {currentIndex + 1} / {cards.length}
-        </span>
-        <button onClick={nextCard}>➡</button>
+        <button disabled={currentIndex === 0} onClick={() => changeCard(-1)}>⬅</button>
+        <span>{currentIndex + 1} / {cards.length}</span>
+        <button disabled={currentIndex === cards.length - 1} onClick={() => changeCard(1)}>➡</button>
       </div>
 
-      <div className="card-wrapper">
-        <div className={`card ${card.flipped ? "flipped" : ""}`}>
-          <div className="card-face front">
-            <textarea
-              placeholder="Front..."
-              value={card.front}
-              onChange={(e) => updateCard("front", e.target.value)}
-            />
-          </div>
-
-          <div className="card-face back">
-            <textarea
-              placeholder="Back..."
-              value={card.back}
-              onChange={(e) => updateCard("back", e.target.value)}
-            />
-          </div>
+      <div className={`card-wrapper ${isFlipped ? "is-flipped" : ""}`}>
+        {/* Front */}
+        <div className="card-face front">
+          <textarea 
+            value={currentCard?.front || ""} 
+            onChange={(e) => handleUpdate("front", e.target.value)} 
+            placeholder="Front side..."
+          />
+        </div>
+        {/* Back */}
+        <div className="card-face back">
+          <textarea 
+            value={currentCard?.back || ""} 
+            onChange={(e) => handleUpdate("back", e.target.value)} 
+            placeholder="Back side..."
+          />
         </div>
       </div>
 
       <div className="controls">
-        <button onClick={flipCard}>🔄 Flip</button>
-        <button onClick={newCard}>➕ New Card</button>
-        <button onClick={saveCard}>💾 Save Card</button>
+        <button onClick={() => setIsFlipped(!isFlipped)}>🔄 Flip</button>
+        <button onClick={() => {
+          setCards([...cards, { front: "", back: "" }]);
+          setCurrentIndex(cards.length);
+          setIsFlipped(false);
+        }}>➕ New</button>
+        <button onClick={handleSave} className="save-btn">💾 Save</button>
       </div>
     </div>
   );
 }
-
-export default App;
