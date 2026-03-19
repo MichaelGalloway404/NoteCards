@@ -44,23 +44,40 @@ function App() {
     setCurrentIndex(newCards.length - 1);
   };
 
-  // --- Save current card to DB ---
+  // --- Save current card to DB (add or update) ---
   const saveCard = async () => {
     const card = cards[currentIndex];
     if (!card) return;
 
-    // Skip if already has id (already saved)
-    if (card.id) return;
-
     try {
-      const res = await fetch("/api/addCard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ front: card.front, back: card.back }),
-      });
-      const savedCard = await res.json();
+      let savedCard;
 
-      // Update state with DB id
+      if (card.id) {
+        // Existing card → update
+        const res = await fetch("/api/updateCard", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: card.id,
+            front: card.front,
+            back: card.back,
+          }),
+        });
+        savedCard = await res.json();
+      } else {
+        // New card → add
+        const res = await fetch("/api/addCard", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            front: card.front,
+            back: card.back,
+          }),
+        });
+        savedCard = await res.json();
+      }
+
+      // Update state with DB card
       const newCards = [...cards];
       newCards[currentIndex] = { ...savedCard, flipped: card.flipped };
       setCards(newCards);
