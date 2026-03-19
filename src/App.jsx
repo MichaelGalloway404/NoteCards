@@ -87,10 +87,12 @@ function App() {
   };
 
   const nextCard = () => {
+    flipCard = true;
     if (currentIndex < cards.length - 1) setCurrentIndex(currentIndex + 1);
   };
 
   const prevCard = () => {
+    flipCard = true;
     if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
   };
 
