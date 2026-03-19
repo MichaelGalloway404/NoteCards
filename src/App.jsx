@@ -10,11 +10,14 @@ function App() {
     async function loadCards() {
       try {
         const res = await fetch("/api/getCards");
+        if (!res.ok) throw new Error("Failed to fetch cards");
         const data = await res.json();
-        setCards(data);
+        setCards(data.length > 0 ? data : [{ front: "", back: "", flipped: false }]);
         setCurrentIndex(0);
       } catch (err) {
         console.error("Failed to load cards:", err);
+        setCards([{ front: "", back: "", flipped: false }]); // fallback
+        setCurrentIndex(0);
       }
     }
     loadCards();
