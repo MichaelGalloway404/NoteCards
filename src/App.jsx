@@ -88,16 +88,22 @@ function App() {
 
   const nextCard = () => {
     if (currentIndex < cards.length - 1) {
+      const newCards = [...cards];
+      // Reset currentIndex+1 card to front
+      newCards[currentIndex + 1].flipped = false;
+      setCards(newCards);
       setCurrentIndex(currentIndex + 1);
-      card.flipped = true;
-    };
+    }
   };
 
   const prevCard = () => {
     if (currentIndex > 0) {
+      const newCards = [...cards];
+      // Reset currentIndex-1 card to front
+      newCards[currentIndex - 1].flipped = false;
+      setCards(newCards);
       setCurrentIndex(currentIndex - 1);
-      card.flipped = true;
-    };
+    }
   };
 
   if (!cards[currentIndex]) return <div>Loading...</div>;
