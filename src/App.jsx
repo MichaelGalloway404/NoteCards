@@ -104,7 +104,7 @@ function App() {
   // random card
   const randomCard = () => {
     // random index
-    let ranIndex = Math.floor(Math.random() * cards.length);
+    let ranIndex = Math.floor(Math.random() * cards.length - 1);
     const newCards = [...cards];
     // Reset the random card to the front side before showing it
     newCards[ranIndex + 1].flipped = false;
