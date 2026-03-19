@@ -119,6 +119,7 @@ function App() {
       newCards[currentIndex + 1].flipped = false;
       setCards(newCards);
       setCurrentIndex(currentIndex + 1);
+      console.log(currentIndex);
     }
   };
 
