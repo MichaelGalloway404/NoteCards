@@ -16,33 +16,18 @@ function App() {
         setCurrentIndex(0);
       } catch (err) {
         console.error("Failed to load cards:", err);
-        setCards([{ front: "", back: "", flipped: false }]); // fallback
+        setCards([{ front: "", back: "", flipped: false }]);
         setCurrentIndex(0);
       }
     }
     loadCards();
   }, []);
 
-  const updateCard = async (side, value) => {
+  const updateCard = (side, value) => {
     if (!cards[currentIndex]) return;
     const newCards = [...cards];
     newCards[currentIndex][side] = value;
     setCards(newCards);
-
-    // Update DB
-    try {
-      await fetch("/api/updateCard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: newCards[currentIndex].id,
-          side,
-          value,
-        }),
-      });
-    } catch (err) {
-      console.error("Failed to update card:", err);
-    }
   };
 
   const flipCard = () => {
@@ -52,38 +37,35 @@ function App() {
     setCards(newCards);
   };
 
-  // async function deleteCurrentCard() {
-  //   const cardId = cards[currentIndex].id;
+  // --- New card locally ---
+  const newCard = () => {
+    const newCards = [...cards, { front: "", back: "", flipped: false }];
+    setCards(newCards);
+    setCurrentIndex(newCards.length - 1);
+  };
 
-  //   await fetch("/api/deleteCard", {
-  //     method: "POST",
-  //     headers: { "Content-Type": "application/json" },
-  //     body: JSON.stringify({ id: cardId }),
-  //   });
+  // --- Save current card to DB ---
+  const saveCard = async () => {
+    const card = cards[currentIndex];
+    if (!card) return;
 
-  //   // Remove from state
-  //   const newCards = [...cards];
-  //   newCards.splice(currentIndex, 1);
-  //   setCards(newCards);
+    // Skip if already has id (already saved)
+    if (card.id) return;
 
-  //   // Adjust index
-  //   if (currentIndex >= newCards.length) {
-  //     setCurrentIndex(newCards.length - 1);
-  //   }
-  // }
-
-  const addCard = async () => {
     try {
       const res = await fetch("/api/addCard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ front: "", back: "" }),
+        body: JSON.stringify({ front: card.front, back: card.back }),
       });
-      const newCard = await res.json();
-      setCards([...cards, newCard]);
-      setCurrentIndex(cards.length); // go to new card
+      const savedCard = await res.json();
+
+      // Update state with DB id
+      const newCards = [...cards];
+      newCards[currentIndex] = { ...savedCard, flipped: card.flipped };
+      setCards(newCards);
     } catch (err) {
-      console.error("Failed to add card:", err);
+      console.error("Failed to save card:", err);
     }
   };
 
@@ -133,7 +115,8 @@ function App() {
 
       <div className="controls">
         <button onClick={flipCard}>🔄 Flip</button>
-        <button onClick={addCard}>➕ Add Card</button>
+        <button onClick={newCard}>➕ New Card</button>
+        <button onClick={saveCard}>💾 Save Card</button>
       </div>
     </div>
   );
