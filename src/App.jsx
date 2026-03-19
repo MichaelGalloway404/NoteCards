@@ -110,6 +110,7 @@ function App() {
     newCards[ranIndex + 1].flipped = false;
     setCards(newCards);
     setCurrentIndex(ranIndex + 1);
+    console.log(ranIndex + " random");
   }
 
   const nextCard = () => {
