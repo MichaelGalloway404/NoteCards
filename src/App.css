@@ -35,6 +35,8 @@ button {
 .card {
   width: fit-content;
   height: fit-content;
+  min-width: 250px;
+  min-height: 250px;
   position: relative;
   transform-style: preserve-3d;
   transition: transform 0.5s;
