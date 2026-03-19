@@ -30,7 +30,7 @@ function App() {
     loadCards();
   }, []);
 
-  // --- UI Logic Helpers ---
+  // --- UI Logic Helpers --- 
 
   // Updates the text of the current card as the user types
   const updateCard = (side, value) => {
@@ -101,6 +101,16 @@ function App() {
   };
 
   // --- Navigation ---
+  // random card
+  const randomCard = () => {
+    // random index
+    let ranIndex = Math.floor(Math.random() * cards.length);
+    const newCards = [...cards];
+    // Reset the random card to the front side before showing it
+    newCards[ranIndex + 1].flipped = false;
+    setCards(newCards);
+    setCurrentIndex(ranIndex + 1);
+  }
 
   const nextCard = () => {
     if (currentIndex < cards.length - 1) {
@@ -171,6 +181,7 @@ function App() {
         <button onClick={flipCard}>🔄 Flip</button>
         <button onClick={newCard}>➕ New Card</button>
         <button onClick={saveCard}>💾 Save Card</button>
+        <button onClick={randomCard}>👽 random Card</button>
       </div>
     </div>
   );
